@@ -8,7 +8,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "if-and-auto"
+name = "Python_FL_Model"
 version = "1.0.0"
 description = ""
 license = "Apache-2.0"
@@ -66,4 +66,5 @@ insecure = true
 
 [superlink.local-deployment]
 address = "<insert your IP>"
+
 insecure = true
