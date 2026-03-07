@@ -1,37 +1,53 @@
 # if-and-auto: A Flower / PyTorch app
 
-## Install dependencies and project
+## Running the Model on PC / Singular Device
 
-The dependencies are listed in the `pyproject.toml` and you can install them as follows:
+Go to the Folder 'Python_FL_Model' and follow the 'README'
 
+## Running the Model on Embedded Devices (Rasberry Pis etc.)
+
+Follow this Tutorial https://github.com/adap/flower/tree/main/examples/embedded-devices. 
+Instead of cloning their example use mine.
+
+## Launching the Flower SuperLink
+
+On your development machine, launch the 'SuperLink'. You will connnect Flower 'SuperNodes' to it in the next step.
 ```bash
-pip install -e .
+flower-superlink --insecure
 ```
+##Connecting Flower SuperNodes
 
-> **Tip:** Your `pyproject.toml` file can define more than just the dependencies of your Flower app. You can also use it to specify hyperparameters for your runs and control which Flower Runtime is used. By default, it uses the Simulation Runtime, but you can switch to the Deployment Runtime when needed.
-> Learn more in the [TOML configuration guide](https://flower.ai/docs/framework/how-to-configure-pyproject-toml.html).
-
-## Run with the Simulation Engine
-
-In the `if-and-auto` directory, use `flwr run` to run a local simulation:
-
+With the 'SuperLink' up and running, we can now launch a 'SuperNode' on each embedded device. To do this, make sure you know the IP address of the machine running the 'SuperLink' and that the necessary data has been copied to the device.
+Ensure the Python environment you created earlier when setting up your device has all dependencies installed. 
+Now, launch your 'SuperNode'  
 ```bash
-flwr run .
+# Repeat for each embedded device (adjust SuperLink IP and partition-id)
+flower-supernode  --insecure      --superlink SuperLink IP:9092    --node-config "partition-id=0 num-partitions=4"
 ```
+Repeat for each embedded device that you want to connect to the 'SuperLink'.
 
-Refer to the [How to Run Simulations](https://flower.ai/docs/framework/how-to-run-simulations.html) guide in the documentation for advice on how to optimize your simulations.
+## Run the Flower App
 
-## Run with the Deployment Engine
+With both the long-running server ('SuperLink') and two 'SuperNodes' up and running, we can now start run. Let's first update the Flower Configuration file to add a new 'SuperLink' connection.
 
-Follow this [how-to guide](https://flower.ai/docs/framework/how-to-run-flower-with-deployment-engine.html) to run the same app in this example but with Flower's Deployment Engine. After that, you might be interested in setting up [secure TLS-enabled communications](https://flower.ai/docs/framework/how-to-enable-tls-connections.html) and [SuperNode authentication](https://flower.ai/docs/framework/how-to-authenticate-supernodes.html) in your federation.
-
-You can run Flower on Docker too! Check out the [Flower with Docker](https://flower.ai/docs/framework/docker/index.html) documentation.
-
-## Resources
-
-- Flower website: [flower.ai](https://flower.ai/)
-- Check the documentation: [flower.ai/docs](https://flower.ai/docs/)
-- Give Flower a ⭐️ on GitHub: [GitHub](https://github.com/adap/flower)
-- Join the Flower community!
-  - [Flower Slack](https://flower.ai/join-slack/)
-  - [Flower Discuss](https://discuss.flower.ai/)
+Locate your Flower configuration file by running:
+```bash
+flwr config list
+```
+```bash
+# Example output:
+Flower Config file: /path/to/your/.flwr/config.toml
+SuperLink connections:
+ supergrid
+ local (default)
+```
+Open this configuration file and add a new 'SuperLink' connection at the end:
+```bash
+[superlink.embedded-federation]
+address = "127.0.0.1:9093" # ControlAPI of your SUPERLINK
+insecure = true
+```
+Finally, run your Flower App in your federation:
+```bash
+flwr run . embedded-federation
+```
