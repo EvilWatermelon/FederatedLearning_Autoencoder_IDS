@@ -1,4 +1,4 @@
-# if-and-auto: A Flower / PyTorch app
+# Python_FL_Model: A Flower / PyTorch app
 
 ## Install dependencies and project
 
@@ -13,7 +13,7 @@ pip install -e .
 
 ## Run with the Simulation Engine
 
-In the `if-and-auto` directory, use `flwr run` to run a local simulation:
+In the `Python_FL_Model` directory, use `flwr run` to run a local simulation:
 
 ```bash
 flwr run .
@@ -35,3 +35,4 @@ You can run Flower on Docker too! Check out the [Flower with Docker](https://flo
 - Join the Flower community!
   - [Flower Slack](https://flower.ai/join-slack/)
   - [Flower Discuss](https://discuss.flower.ai/)
+
