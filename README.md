@@ -1,4 +1,4 @@
-# Python: A Flower / PyTorch app
+# Python_FL_Model: A Flower / PyTorch app
 
 ## Deploying the Model on PC / Singular Device
 
