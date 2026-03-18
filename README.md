@@ -1,4 +1,4 @@
-# if-and-auto: A Flower / PyTorch app
+# Python: A Flower / PyTorch app
 
 ## Deploying the Model on PC / Singular Device
 
