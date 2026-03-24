@@ -26,6 +26,13 @@ flower-supernode  --insecure      --superlink SuperLink IP:9092    --node-config
 ```
 Repeat for each embedded device that you want to connect to the `SuperLink`.
 
+If you want to use SuperLink and SuperNode on PC with multiple Terminals launch 'Supernode' with this
+```bash
+# Repeat for each embedded device (adjust SuperLink IP, Clientappio Port and partition-id)
+flower-supernode  --insecure      --superlink SuperLink IP:9092  --clientappio-api-address 127.0.0.1:9097  --node-config "partition-id=0 num-partitions=4"
+```
+Change the clientappio-api-address Port for each Client
+
 ### Run the Flower App
 
 With both the long-running server (`SuperLink`) and two `SuperNodes` up and running, we can now start run. Let's first update the Flower Configuration file to add a new `SuperLink` connection.
