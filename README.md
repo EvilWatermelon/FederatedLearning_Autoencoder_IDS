@@ -4,7 +4,7 @@
 
 Go to the Folder `Python_FL_Model` and follow the `README`
 
-## Deploying the Model on Embedded Devices (Rasberry Pis etc.)
+## Deploying the Model on Embedded Devices (Raspberry Pis etc.)
 
 Follow this Tutorial [Embedded Devices](https://github.com/adap/flower/tree/main/examples/embedded-devices). 
 Instead of cloning their example use mine.
