@@ -29,9 +29,7 @@ def train(msg: Message, context: Context):
 
     # Load the model and initialize it with the received weights
     input_dim: int = context.run_config["input-dim"]
-
     model = Autoencoder(input_dim)
-
     model.load_state_dict(msg.content["arrays"].to_torch_state_dict())
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -43,10 +41,11 @@ def train(msg: Message, context: Context):
     which_dataset: int = context.run_config["which_dataset"]
 
     partition = partition_id 
-    """ which_dataset = 0 is TonIoT; everything else is IoTID20 just like """
+    
+    """ which_dataset = 0 is CIC-BoTIoT; everything else is IoTID20 just like """
     trainloader, validaton_loader, _ ,_, _,_,_ = load_mono_dataset(partition, num_partitions,which_dataset=which_dataset) # do i need dynamic batchsize? WiP
-    """ which_dataset 0 for Training TonIoT -> Testing IoTID20; everything else for Training IoTID20 -> Testing TonIoT """
-    #trainloader, validaton_loader, _ ,_, _,_,_ = load_cross_data(partition, num_partitions,which_dataset=1) # do i need dynamic batchsize? WiP
+    """ which_dataset 0 for Training CIC-BoTIoT -> Testing IoTID20; everything else for Training IoTID20 -> Testing CIC-BoTIoT """
+    #trainloader, validaton_loader, _ ,_, _,_,_ = load_cross_data(partition, num_partitions,which_dataset=which_dataset) # do i need dynamic batchsize? WiP
 
     # Call the training function
     train_loss, val_loss = train_fn(
@@ -95,43 +94,45 @@ def evaluate(msg: Message, context: Context):
     which_dataset: int = context.run_config["which_dataset"]
 
     partition = partition_id 
-    """ which_dataset = 0 is TonIoT; everything else is IoTID20 """
-    _,_,X_test_full, X_test_validation, y_true,X_train_classifier,y_class = load_mono_dataset(partition, num_partitions,which_dataset=which_dataset)  # do i need dynamic batchsize? WiP
-    """ which_dataset 0 for Training TonIoT -> Testing IoTID20; everything else for Training IoTID20 -> Testing TonIoT """
-    #_,_,X_test_full, X_test_validation, y_true,X_train_classifier,y_class = load_cross_data(partition, num_partitions,which_dataset=1) 
+    
+    """ which_dataset = 0 is CIC-BoTIoT; everything else is IoTID20 """
+    _,_,X_test_full, X_test_validation, y_true,X_train_dt,y_dt = load_mono_dataset(partition, num_partitions,which_dataset=which_dataset)  # do i need dynamic batchsize? WiP
+    """ which_dataset 0 for Training CIC-BoTIoT -> Testing IoTID20; everything else for Training IoTID20 -> Testing CIC-BoTIoT """
+    #_,_,X_test_full, X_test_validation, y_true,X_train_dt,y_dt = load_cross_data(partition, num_partitions,which_dataset=which_dataset)
+     
     # Call the evaluation function
-    threshold, y_pred_90, tr_star, y_tr_star, errors_full, errors_val,y_pred,y_proba,_,_,_ = test_fn(
+    threshold, y_pred_percentile, tr_star, y_tr_star, errors_full, errors_val,y_pred,y_proba,_,_,_ = test_fn(
         model, # Autoencoder
         X_test_full, X_test_validation, # Data for Testing
         partition, # Partition ID
         device, 
-        X_train_classifier,y_class # Data for Decision Tree
+        X_train_dt,y_dt # Data for Decision Tree
     )
 
  
     # Metrics for Client Eval
     # Confusion matrix
-    cm90 = confusion_matrix(y_true, y_pred_90)
-    cm_class = confusion_matrix(y_true,y_pred)
+    cmpercentile = confusion_matrix(y_true, y_pred_percentile)
+    cm_dt = confusion_matrix(y_true,y_pred)
  
   
     print(f"\nConfusion Matrix Classify and Device Number {partition}:")
-    print(cm_class)
+    print(cm_dt)
     
     # Use Confusion Matrix to calculate fnr and fpr for Percentile and DT
-    fpr90=cm90[0][1]/ (cm90[0][0]+cm90[0][1])
-    fnr90=cm90[1][0]/ (cm90[1][1]+cm90[1][0])
+    fprpercentile=cmpercentile[0][1]/ (cmpercentile[0][0]+cmpercentile[0][1])
+    fnrpercentile=cmpercentile[1][0]/ (cmpercentile[1][1]+cmpercentile[1][0])
 
-    fprclass=cm_class[0][1] / (cm_class[0][0]+cm_class[0][1])
-    fnrclass=cm_class[1][0] / (cm_class[1][1]+cm_class[1][0])
+    fprdt=cm_dt[0][1] / (cm_dt[0][0]+cm_dt[0][1])
+    fnrdt=cm_dt[1][0] / (cm_dt[1][1]+cm_dt[1][0])
 
     #  ROC AUC for Percentile and DT
     b = roc_auc_score(y_true, y_proba) 
     c = roc_auc_score(y_true,errors_full)
 
     print(f"Device {partition} ROC AUC DT",b, "ROC AUC Error", c)
-    print(f"Device {partition} Fpr90",float("{:.2f}".format(fpr90)),"Fnr90",float("{:.2f}".format(fnr90)),"FPR DT",
-          float("{:.2f}".format(fprclass)),"FNR DT",float("{:.2f}".format(fnrclass)))
+    print(f"Device {partition} Fprpercentile",float("{:.2f}".format(fprpercentile)),"Fnrpercentile",float("{:.2f}".format(fnrpercentile)),"FPR DT",
+          float("{:.2f}".format(fprdt)),"FNR DT",float("{:.2f}".format(fnrdt)))
 
 
 
@@ -142,10 +143,10 @@ def evaluate(msg: Message, context: Context):
     # Return the evaluation metrics
     metrics = {
         "threshold": float(threshold),
-        "fpr90": float("{:.2f}".format(fpr90)),
-        "fnr90": float("{:.2f}".format(fnr90)),
-        "FPR DT": float("{:.2f}".format(fprclass)),
-        "FNR DT": float("{:.2f}".format(fnrclass)),
+        "fprpercentile": float("{:.2f}".format(fprpercentile)),
+        "fnrpercentile": float("{:.2f}".format(fnrpercentile)),
+        "FPR DT": float("{:.2f}".format(fprdt)),
+        "FNR DT": float("{:.2f}".format(fnrdt)),
         #"PR AUC": float("{:.2f}".format(a)),
         "ROC AUC DT": float("{:.2f}".format(b)),
         "ROC AUC Error": float("{:.2f}".format(c)),

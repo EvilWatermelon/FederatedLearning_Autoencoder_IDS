@@ -38,67 +38,72 @@ def log1p_static_scale(df):
 rng = np.random.default_rng(seed=42)
 
 def load_cross_data(partition_id: int, num_partitions: int, which_dataset: int):
+    
     if which_dataset == 0:
-
+    # load Training Dataset CIC-BoTIoT, Testing Dataset IoTID20 for Clients
 
         
         dfs=[]
-        j = partition_id *5
-        if (partition_id >= 2):
+        j = partition_id *5 # 
+        if (partition_id >= 2): # Clients 3 and 4 load Datasplit with high Flowduration 
             for i in range(5):
                 
-            
+                # load 5000 benign Samples from Training Dataset
                 df = pd.read_csv(f"small_BoTIoT_dataset_benign_clean_noleak/split_{partition_id+60+1+j+i}.csv")
                 dfs.append(df)
-                df_benign = pd.concat(dfs,ignore_index=True)
-        else:    
+                df_benign = pd.concat(dfs,ignore_index=True) 
+        else:    # Clients 1 and 2 load Datasplit with low Flowduration 
             for i in range(5):
                 
-                
+                # load 5000 benign Samples from Training Dataset
                 df = pd.read_csv(f"small_BoTIoT_dataset_benign_clean_noleak/split_{partition_id+1+j+i}.csv")
                 dfs.append(df)
                 df_benign = pd.concat(dfs,ignore_index=True)
     
-
+        # load anomaly samples from Training Dataset for training Decisiontree
         df_attack = pd.read_csv(f"small_BoTIoT_dataset_allattacks_clean/split_{partition_id+1}.csv")
             
-        
+        # load anomaly samples from testing Dataset for evaluation
         attacks = pd.read_csv(f"small_IoTID20_dataset_allattacks_clean/split_{partition_id+1}.csv")
 
     
+        # load benign samples from testing Dataset for evaluation
 
         bengin = pd.read_csv(f"small_IoTID20_dataset_benign_clean/split_{partition_id+1}.csv")
         print("Training BoTIoT, Testing IoTID20")
     elif which_dataset == 1:
-        """Load partition IoTID20 data."""
+        # load Training Dataset IoTID20, Testing Dataset CIC-BoTIoT for Clients
+
 
         dfs=[]
         j = partition_id *5
-        if (partition_id >= 2):
+        if (partition_id >= 2): # Clients 3 and 4 load Datasplit with high Flowduration
             for i in range(5):
                 
-            
+                # load 5000 benign Samples from Training Dataset            
                 df = pd.read_csv(f"small_IoTID20_dataset_benign_clean_noleak/split_{partition_id+8+1+j+i}.csv")
                 dfs.append(df)
                 df_benign = pd.concat(dfs,ignore_index=True)
         else:    
-            for i in range(5):
+            for i in range(5): # Clients 1 and 2 load Datasplit with low Flowduration 
                 
-                
+                # load 5000 benign Samples from Training Dataset
                 df = pd.read_csv(f"small_IoTID20_dataset_benign_clean_noleak/split_{partition_id+1+j+i}.csv")
                 dfs.append(df)
                 df_benign = pd.concat(dfs,ignore_index=True)
     
+        # load anomaly samples from Training Dataset for training Decisiontree
 
         df_attack = pd.read_csv(f"small_IoTID20_dataset_allattacks_clean/split_{partition_id+1}.csv")
         
-            
+        # load anomaly samples from testing Dataset for evaluation
         attacks = pd.read_csv(f"small_BoTIoT_dataset_allattacks_clean/split_{partition_id+1}.csv")
-
+        
+        # load benign samples from testing Dataset for evaluation
         bengin = pd.read_csv(f"small_BoTIoT_dataset_benign_clean/split_{partition_id+1}.csv") 
         print("Training IoTID20, Testing BoTIoT")
 
-
+    # concat the samples for evaluation into X_test_attacks and change here to change the ratio of the anomalies in testing
     X_test_attacks = pd.concat([bengin,attacks.sample(n= int((len(bengin)*0.1)),random_state=42)])
 
 
@@ -112,20 +117,19 @@ def load_cross_data(partition_id: int, num_partitions: int, which_dataset: int):
            "Bwd Blk Rate Avg","Bwd_Blk_Rate_Avg","Init Fwd Win Byts","Init_Fwd_Win_Byts", "Fwd Seg Size Min","Fwd_Seg_Size_Min"
            ,'Cat','Sub Cat','Attack']
 
-
+    # replace '_' to ' ' from features. Makes it so the feature names are written the same
     df_benign.columns = df_benign.columns.str.replace('_', ' ')
     df_attack.columns = df_attack.columns.str.replace('_', ' ')
     X_test_attacks.columns = X_test_attacks.columns.str.replace('_', ' ')    
     
-    # "Feature Selection"
+    # "Feature Selection" remove the label_col features  
     df_benign = df_benign.drop([col for col in label_col if col in df_benign.columns], axis=1)
 
-    
-    
+    # remove the label_col features
     df_attack = df_attack.drop([col for col in label_col if col in df_attack.columns], axis=1)
 
     
-    # Remove features
+    # remove the label_col features
     X_test_attacks = X_test_attacks.drop([col for col in label_col if col in X_test_attacks.columns], axis=1)
 
 
@@ -136,7 +140,7 @@ def load_cross_data(partition_id: int, num_partitions: int, which_dataset: int):
         X_test_attacks["target"] = X_test_attacks["Label"].apply(lambda x: 1 if x!=0 else 0)
     target = X_test_attacks["target"].to_numpy()
     print("Testing", len(target))
-    # remove features
+    # remove label features
     X_test_attacks = X_test_attacks.drop(columns=["Label"])
     X_test_attacks = X_test_attacks.drop(columns=["target"])
     df_benign = df_benign.drop(columns=["Label"])
@@ -149,97 +153,99 @@ def load_cross_data(partition_id: int, num_partitions: int, which_dataset: int):
 
     print(f"Benign Testing {partition_id}",num_zeros)
     print(f"Anomaly Testing {partition_id}",num_ones)
-    # can add earlier to make the label_col smaller. Makes it so the feature names are written the same
   
     # split training data into Training and validation set
     X_train_, X_val   = train_test_split(df_benign, test_size=0.2,random_state=42)
-    X_train_, X_benign_class   = train_test_split(X_train_, test_size=0.2,random_state=42)
+    # split splitted training data into Training and training set for Decision Tree
+    X_train_, X_benign_dt   = train_test_split(X_train_, test_size=0.2,random_state=42)
 
 
     # Scaling
-    scaler = StandardScaler() # StandardScaler(clip = True) #it does combat the exploding values of val loss and tr_star threshold, but is it good for anomaly detection? no it shouldn't be
     X_train = log1p_static_scale(X_train_)
     
     X_Validation = log1p_static_scale(X_val)
-    X_benign_class = log1p_static_scale(X_benign_class)
-
-    df_attack = df_attack.sample(len(X_benign_class),random_state = 42)
+    X_benign_dt = log1p_static_scale(X_benign_dt)
+    sample_attack = int(len(X_benign_dt)*0.1)    
+    df_attack = rng.choice(df_attack , size=sample_attack, axis=0, replace=False)
     df_attack = log1p_static_scale(df_attack)
     
-    X_train_classifier = np.vstack([X_benign_class, df_attack])
-    y_class = np.hstack([
-    np.zeros(len(X_benign_class)),  # Benign holdout
+    # training data for Decisiontree
+    X_train_dt = np.vstack([X_benign_dt, df_attack])
+    y_true_early = np.hstack([
+    np.zeros(len(X_benign_dt)),  # Benign holdout
     np.ones(len(df_attack))   # All attacks
     ])
     #
     y_true = target
-    
-    # Reuse same scaler
+    _,X_train_dt,_, y_dt = train_test_split(X_train_dt,y_true_early, test_size=0.25,random_state=42,stratify=y_true_early)
+
     print("Training Data amount:",len(X_train))
     X_test_full = log1p_static_scale(X_test_attacks)
+    X_test_full,_,y_true, _ = train_test_split(X_test_full,y_true, test_size=0.25,random_state=42,stratify=y_true)
 
     trainloader = DataLoader(TensorDataset(torch.FloatTensor(X_train)), batch_size=64, shuffle=True)
     validaton_loader = DataLoader(TensorDataset(torch.FloatTensor(X_Validation)), batch_size=64 ,shuffle=True)
     print("Full",len(y_true),"Benign",np.sum(y_true == 0),"Anomaly",np.sum(y_true == 1))
   
-    return trainloader, validaton_loader ,X_test_full, X_Validation, y_true,X_train_classifier,y_class
+    return trainloader, validaton_loader ,X_test_full, X_Validation, y_true,X_train_dt,y_dt
 
 
 def load_mono_dataset(partition_id: int, num_partitions: int,which_dataset:int):
-    """Load partition BoTIoT data."""
 
 
 
     if which_dataset ==0 :
+        #Training and Testing CIC-BoTIoT
         dfs = []
         i=0
         j = partition_id *5
-        if (partition_id >= 2):
+        if (partition_id >= 2): # Clients 3 and 4 load Datasplit with high Flowduration 
             for i in range(5):
                 
-            
+                # load 5000 benign Samples
                 df = pd.read_csv(f"small_BoTIoT_dataset_benign_clean_noleak/split_{partition_id+60+1+j+i}.csv")
                 dfs.append(df)
                 df_benign = pd.concat(dfs,ignore_index=True)
-        else:    
+        else:     # Clients 1 and 2 load Datasplit with low Flowduration 
             for i in range(5):
                 
-                
+                # load 5000 benign Samples
                 df = pd.read_csv(f"small_BoTIoT_dataset_benign_clean_noleak/split_{partition_id+1+j+i}.csv")
                 dfs.append(df)
                 df_benign = pd.concat(dfs,ignore_index=True)
         print(f"Client {partition_id} Mean Duration: {df_benign['Flow Duration'].mean()}")
-
+        # load 1000 anomaly samples
         X_test_attacks = pd.read_csv(f"small_BoTIoT_dataset_allattacks_clean/split_{partition_id+1}.csv")
         print("load_data_BoTIoT split")
     elif which_dataset ==1 :
+        #Training and Testing IoTID20
+
         dfs = []
         i=0
         j = partition_id *5
-        if (partition_id >= 2):
+        if (partition_id >= 2): # Clients 3 and 4 load Datasplit with high Flowduration
             for i in range(5):
                 
-            
+                # load 5000 benign Samples
                 df = pd.read_csv(f"small_IoTID20_dataset_benign_clean_noleak/split_{partition_id+8+1+j+i}.csv")
                 dfs.append(df)
                 df_benign = pd.concat(dfs,ignore_index=True)
-        else:    
+        else:    # Clients 1 and 2 load Datasplit with low Flowduration
             for i in range(5):
                 
-                
+                # load 5000 benign Samples
                 df = pd.read_csv(f"small_IoTID20_dataset_benign_clean_noleak/split_{partition_id+1+j+i}.csv")
                 dfs.append(df)
                 df_benign = pd.concat(dfs,ignore_index=True)
         print(f"Client {partition_id} Mean Duration: {df_benign['Flow_Duration'].mean()}")
 
-
+        # load 1000 anomaly samples
         X_test_attacks = pd.read_csv(f"small_IoTID20_dataset_allattacks_clean/split_{partition_id+1}.csv")
         print("load_data_IoTID20 Split")
     
         
         
         
-    # Handle NaNs / Infs
     print(f"Before Training {partition_id}",len(df_benign))
     print(f"Before Testing {partition_id}",len(X_test_attacks))
     label_col = ['Flow ID', 'Flow_ID', 'Src IP', 'Src_IP', 'Dst IP', 'Dst_IP',
@@ -251,15 +257,14 @@ def load_mono_dataset(partition_id: int, num_partitions: int,which_dataset:int):
     
 
 
-    
-    # Remove constant / near-constant features
+    # replace '_' to ' ' from features. Makes it so the feature names are written the same
     df_benign.columns = df_benign.columns.str.replace('_', ' ')
     X_test_attacks.columns = X_test_attacks.columns.str.replace('_', ' ')
+    
+    # remove the label_col features
     df_benign = df_benign.drop([col for col in label_col if col in df_benign.columns], axis=1)
-
-    # Clean data
     X_test_attacks = X_test_attacks.drop([col for col in label_col if col in X_test_attacks.columns], axis=1)
-
+    #brauch ich nicht in dieser Function
     if which_dataset == 0:
         X_test_attacks["target"] = X_test_attacks["Label"].apply(lambda x: 1 if x!=0 else 0)
 
@@ -268,75 +273,81 @@ def load_mono_dataset(partition_id: int, num_partitions: int,which_dataset:int):
         
     target = X_test_attacks["target"].to_numpy()
     print("Testing", len(target))
+    # drop label columns
     X_test_attacks = X_test_attacks.drop(columns=["Label"])
     X_test_attacks = X_test_attacks.drop(columns=["target"])
     df_benign = df_benign.drop(columns=["Label"])
     print(f"After Training {partition_id}",len(df_benign))
     print(f"After Testing {partition_id}",len(X_test_attacks))
-
+    # split training data into Training and validation set
     X_train_, X_val   = train_test_split(df_benign, test_size=0.2,random_state=42)
+    # split splitted training data into Training and testing set
     X_train_, X_test   = train_test_split(X_train_, test_size=0.25,random_state=42)
-
-    scaler = StandardScaler()  # StandardScaler(clip = True) #it does combat the exploding values of val loss and tr_star threshold, but is it good for anomaly detection? no it shouldn't be
+    
+    # scaling
     X_train = log1p_static_scale(X_train_)
 
     X_Validation = log1p_static_scale(X_val)
+    # ratio of anomalies in testing and training of DT
     sample_attack = int(len(X_test)*0.1)
     X_test_attacks = rng.choice(X_test_attacks , size=sample_attack, axis=0, replace=False)
+    # testing set that will be split into testing set and dt train set
     X_test_full = np.vstack([X_test, X_test_attacks])
-    # Reuse same scaler
     y_true_early = np.hstack([
-    np.zeros(len(X_test)),  # Benign holdout
-    np.ones(len(X_test_attacks))   # All attacks
+    np.zeros(len(X_test)),  
+    np.ones(len(X_test_attacks))   
     ])
 
     X_test_full = log1p_static_scale(X_test_full)
-    X_test_full,X_train_classifier,y_true, y_class = train_test_split(X_test_full,y_true_early, test_size=0.25,random_state=42,stratify=y_true_early)
+    # split testing data into testing and dt training set
+    X_test_full,X_train_dt,y_true, y_dt = train_test_split(X_test_full,y_true_early, test_size=0.25,random_state=42,stratify=y_true_early)
     print("Full",len(y_true),"Benign",np.sum(y_true == 0),"Anomaly",np.sum(y_true == 1))
-
+    # Dataloaders for training
     trainloader = DataLoader(TensorDataset(torch.FloatTensor(X_train)), batch_size=64, shuffle=True)
     validaton_loader = DataLoader(TensorDataset(torch.FloatTensor(X_Validation)), batch_size=64 ,shuffle=True)
 
-    print("Samples train",len(X_train),"val",len(X_Validation),"X_train_classifier",len(X_train_classifier),"attacksx",len(X_test_attacks))
-    return trainloader, validaton_loader ,X_test_full, X_Validation, y_true,X_train_classifier,y_class
+    print("Samples train",len(X_train),"val",len(X_Validation),"X_train_dt",len(X_train_dt),"attacksx",len(X_test_attacks))
+    return trainloader, validaton_loader ,X_test_full, X_Validation, y_true,X_train_dt,y_dt
 
 
 
 def load_centralized_dataset(which_dataset):
-    """Load partition IoTID20 data."""
 
-    global fds_counter
-    global fds
-    global ads
+
     
 
     if which_dataset ==0 :
+        # load Testing Dataset CIC-BoTIoT for Server side Evaluation
+
         dfs=[]
         i=0
         for i in range(5):
             
-             
+            # load 5000 benign Samples with random flowduration
             df = pd.read_csv(f"small_BoTIoT_dataset_benign_clean_noleak/glo_split_{1+i}.csv")
             dfs.append(df)
         df_benign = pd.concat(dfs,ignore_index=True)
-        print(f"Client Mean Duration: {df_benign['Flow Duration'].mean()}")
-
+        # load anomaly samples with random flow duration
         X_test_attacks = pd.read_csv(f"small_BoTIoT_dataset_allattacks_clean/split_29.csv")
+        # calibration split for calibrating the tflite model for ESP32 Deployment
         calibration_split = pd.concat([pd.read_csv(f"small_IoTID20_dataset_allattacks_clean/split_29.csv"),pd.read_csv(f"small_IoTID20_dataset_benign_clean_noleak/glo_split_8.csv")],ignore_index=True)
 
         print("load_data_BoTIoT 90/10")
     elif which_dataset ==1 :
+    # load Training Dataset IoTID20, Testing Dataset CIC-BoTIoT for Server side Evaluation
+
         dfs=[]
         i=0
         for i in range(5):
             
-             
+            # load 5000 benign Samples with random flowduration
             df = pd.read_csv(f"small_IoTID20_dataset_benign_clean_noleak/glo_split_{1+i}.csv")
             dfs.append(df)
         df_benign = pd.concat(dfs,ignore_index=True)
     
-
+        # load anomaly samples with random flow duration
         X_test_attacks = pd.read_csv(f"small_IoTID20_dataset_allattacks_clean/split_29.csv")
+        # calibration split for calibrating the tflite model for ESP32 Deployment
         calibration_split = pd.concat([pd.read_csv(f"small_IoTID20_dataset_allattacks_clean/split_15.csv"),pd.read_csv(f"small_IoTID20_dataset_benign_clean_noleak/glo_split_8.csv")],ignore_index=True)
         print("load_data_IoTID20 90/10")
     
@@ -351,17 +362,17 @@ def load_centralized_dataset(which_dataset):
            ,'Cat','Sub Cat','Attack']
     
 
-
+    # replace '_' to ' ' from features. Makes it so the feature names are written the same
     df_benign.columns = df_benign.columns.str.replace('_', ' ')
     X_test_attacks.columns = X_test_attacks.columns.str.replace('_', ' ')
     calibration_split.columns = calibration_split.columns.str.replace('_', ' ')
-    calibration_split = calibration_split.groupby('Label').sample(n=50, random_state=42)
     
+    # get 50 random samples of benign and 50 random samples of anomaly
+    calibration_split = calibration_split.groupby('Label').sample(n=50, random_state=42)
+   
+    # remove the label_col features
     df_benign = df_benign.drop([col for col in label_col if col in df_benign.columns], axis=1)
-
-    # Clean data
     X_test_attacks = X_test_attacks.drop([col for col in label_col if col in X_test_attacks.columns], axis=1)
-    #X_test_attacks = X_test_attacks[available_features]
     calibration_split = calibration_split.drop([col for col in label_col if col in calibration_split.columns], axis=1)
 
     if which_dataset == 0:
@@ -372,6 +383,7 @@ def load_centralized_dataset(which_dataset):
         
     target = X_test_attacks["target"].to_numpy()
     print("Testing", len(target))
+    # drop label columns
     X_test_attacks = X_test_attacks.drop(columns=["Label"])
     X_test_attacks = X_test_attacks.drop(columns=["target"])
     df_benign = df_benign.drop(columns=["Label"])
@@ -380,12 +392,11 @@ def load_centralized_dataset(which_dataset):
     print(f"After Testing",len(X_test_attacks))
     
 
-    # Split df_benign into Validation(X_val) and Benign data for Test(X_test)
+    # Split df_benign into Validation(X_val), Benign data for Test(X_test) and Training (X_train_)
     X_train_, X_val   = train_test_split(df_benign, test_size=0.2,random_state=42)
     X_train_, X_test   = train_test_split(X_train_, test_size=0.25,random_state=42)
 
-    
-    scaler = StandardScaler() # StandardScaler(clip = True) #it does combat the exploding values of val loss and tr_star threshold, but is it good for anomaly detection? no it shouldn't be
+    # scaling
     X_train = log1p_static_scale(X_train_)
     
     calibration_split = log1p_static_scale(calibration_split)
@@ -395,26 +406,26 @@ def load_centralized_dataset(which_dataset):
     # changing the Ratio of how many Anomaly samples in Testing
     sample_attack = int(len(X_test)*0.1)    
     X_test_attacks = rng.choice(X_test_attacks , size=sample_attack, axis=0, replace=False)
-
+    
+    # testing set that will be split into testing set and dt train set
     X_test_full = np.vstack([X_test, X_test_attacks])
-    # Reuse same scaler
     y_true_early = np.hstack([
     np.zeros(len(X_test)),  # Benign holdout
     np.ones(len(X_test_attacks))   # All attacks
     ])
 
-    #X_test_benign = log1p_static_scale(X_test.values)
     X_test_full = log1p_static_scale(X_test_full)
-    X_test_full,X_train_classifier,y_true, y_class = train_test_split(X_test_full,y_true_early, test_size=0.25,random_state=42,stratify=y_true_early)
-
+    # split testing data into testing and dt training set
+    X_test_full,X_train_dt,y_true, y_dt = train_test_split(X_test_full,y_true_early, test_size=0.25,random_state=42,stratify=y_true_early)
+    # Dataloaders for training
     trainloader = DataLoader(TensorDataset(torch.FloatTensor(X_train)), batch_size=64, shuffle=True)
     validaton_loader = DataLoader(TensorDataset(torch.FloatTensor(X_Validation)), batch_size=64 ,shuffle=True)
     print("Full",len(y_true),"Benign",np.sum(y_true == 0),"Anomaly",np.sum(y_true == 1))
 
     lenge = len(X_test_full)
-#Exporting Datasets into .h files for MCU deployment
+    #Exporting Datasets into .h files for MCU deployment
     y_mcu = y_true
-# --- Write the C Header File ---
+    # --- Write the C Header File ---
     filename = f"mcu_test_data.h"
     print(f"Exporting {lenge} samples to {filename}...")
 
@@ -442,7 +453,7 @@ def load_centralized_dataset(which_dataset):
         y_str = ", ".join([str(int(val)) for val in y_mcu])
         f.write(y_str)
         f.write("\n};\n")
-# --- Write the C Header File Calibration--- 
+    # --- Write the C Header File Calibration--- 
     filename = f"calibration_data.h"    
     lenge = len(calibration_split)
    
@@ -469,59 +480,55 @@ def load_centralized_dataset(which_dataset):
 
     
     
-    print("Samples train",len(X_train),"val",len(X_Validation),"X_train_classifier",len(X_train_classifier),"attacksx",len(X_test_attacks))
+    print("Samples train",len(X_train),"val",len(X_Validation),"X_train_dt",len(X_train_dt),"attacksx",len(X_test_attacks))
 
-    return trainloader, validaton_loader ,X_test_full, X_Validation, y_true,X_train_classifier,y_class
+    return trainloader, validaton_loader ,X_test_full, X_Validation, y_true,X_train_dt,y_dt
 
 def load_crossdataset(which_dataset):
-    """Load partition BoTIoT data."""
+    
     if which_dataset == 0:
+    # load Training Dataset CIC-BoTIoT, Testing Dataset IoTID20 for Server side Evaluation
 
         dfs = []
         for i in range(5):
             
-             
+            #5000 benign samples of training dataset. Used for calculating Threshold and DT training
             df = pd.read_csv(f"small_BoTIoT_dataset_benign_clean_noleak/glo_split_{1+i}.csv")
             dfs.append(df)
         df_benign = pd.concat(dfs,ignore_index=True)
 
     
-
+        # 1000 anomaly samples of training dataset. Used for DT training
         df_attack = pd.read_csv(f"small_BoTIoT_dataset_allattacks_clean/split_29.csv")
-                    
+        # anomaly samples of testing dataset.             
         attacks = pd.read_csv(f"small_IoTID20_dataset_allattacks_clean/split_29.csv")
-
+        # benign samples of testing dataset.
         bengin = pd.read_csv(f"small_IoTID20_dataset_benign_clean/split_1.csv")
         print("load_data")
     if which_dataset == 1:
-        """Load partition IoTID20 data."""
-        #os.chdir("B:/B_Projekt2/CiC/IoTID20/small_IoTID20_dataset_benign_clean_noleak")
+        # load Training Dataset IoTID20, Testing Dataset CIC-BoTIoT for Server side Evaluation
         dfs = []
 
         for i in range(5):
             
-             
+            #5000 benign samples of training dataset. Used for calculating Threshold and DT training
             df = pd.read_csv(f"small_IoTID20_dataset_benign_clean_noleak/glo_split_{1+i}.csv")
             dfs.append(df)
         df_benign = pd.concat(dfs,ignore_index=True)
-
-    
-        #os.chdir("B:/B_Projekt2/CiC/IoTID20/small_IoTID20_dataset_allattacks_clean")
-
+       
+        # 1000 anomaly samples of training dataset. Used for DT training
         df_attack = pd.read_csv(f"small_IoTID20_dataset_allattacks_clean/split_29.csv")
         
     
             
-        #os.chdir("B:/B_Projekt2/CiC/BoTIoT/small_BoTIoT_dataset_allattacks_clean")
-        
+        # anomaly samples of testing dataset.             
         attacks = pd.read_csv(f"small_BoTIoT_dataset_allattacks_clean/split_29.csv")
 
     
-        #os.chdir("B:/B_Projekt2/CiC/BoTIoT/small_BoTIoT_dataset_benign_clean")
-
+        # benign samples of testing dataset.
         bengin = pd.read_csv(f"small_BoTIoT_dataset_benign_clean/split_1.csv") 
         print("load_data2")
-
+    # concat the samples for evaluation into X_test_attacks and change here to change the ratio of the anomalies in testing
     X_test_attacks = pd.concat([bengin,attacks.sample(n= int((len(bengin)*0.1)),random_state=42)])
 
     print(f"Before Training ",len(df_benign))
@@ -533,18 +540,14 @@ def load_crossdataset(which_dataset):
            "Bwd Blk Rate Avg","Bwd_Blk_Rate_Avg","Init Fwd Win Byts","Init_Fwd_Win_Byts", "Fwd Seg Size Min","Fwd_Seg_Size_Min"
            ,'Cat','Sub Cat','Attack']
     
+    # replace '_' to ' ' from features. Makes it so the feature names are written the same
     df_benign.columns = df_benign.columns.str.replace('_', ' ')
     df_attack.columns = df_attack.columns.str.replace('_', ' ')
     X_test_attacks.columns = X_test_attacks.columns.str.replace('_', ' ')    
     
-    # "Feature Selection"
+    # "Feature Selection" Remove features
     df_benign = df_benign.drop([col for col in label_col if col in df_benign.columns], axis=1)
-
-    
     df_attack = df_attack.drop([col for col in label_col if col in df_attack.columns], axis=1)
-
-    
-    # Remove features
     X_test_attacks = X_test_attacks.drop([col for col in label_col if col in X_test_attacks.columns], axis=1)
 
     # label attack and benign data of Testing data for evaluation 
@@ -555,7 +558,7 @@ def load_crossdataset(which_dataset):
 
     target = X_test_attacks["target"].to_numpy()
     print("Testing", len(target))
-    # remove features
+    # remove label column
     X_test_attacks = X_test_attacks.drop(columns=["Label"])
     X_test_attacks = X_test_attacks.drop(columns=["target"])
     df_benign = df_benign.drop(columns=["Label"])
@@ -568,42 +571,43 @@ def load_crossdataset(which_dataset):
 
     print(f"Benign Testing ",num_zeros)
     print(f"Anomaly Testing ",num_ones)
-    # can add earlier to make the label_col smaller. Makes it so the feature names are written the same
   
-    # split training data into Training and validation set
+    # split training data into Training and validation set and benign data for DT training
     X_train_, X_val   = train_test_split(df_benign, test_size=0.2,random_state=42)
-    X_train_, X_benign_class   = train_test_split(X_train_, test_size=0.2,random_state=42)
+    X_train_, X_benign_dt   = train_test_split(X_train_, test_size=0.2,random_state=42)
 
 
     # Scaling
-    scaler = StandardScaler() # StandardScaler(clip = True) #it does combat the exploding values of val loss and tr_star threshold, but is it good for anomaly detection? no it shouldn't be
     X_train = log1p_static_scale(X_train_)
 
     X_Validation = log1p_static_scale(X_val)
-    X_benign_class = log1p_static_scale(X_benign_class)
-
-    df_attack = df_attack.sample(len(X_benign_class),random_state = 42)
+    X_benign_dt = log1p_static_scale(X_benign_dt)
+    # i need to change this
+    sample_attack = int(len(X_benign_dt)*0.1)    
+    df_attack = rng.choice(df_attack , size=sample_attack, axis=0, replace=False)
     df_attack = log1p_static_scale(df_attack)
-    
-    X_train_classifier = np.vstack([X_benign_class, df_attack])
-    y_class = np.hstack([
-    np.zeros(len(X_benign_class)),  # Benign holdout
+    X_train_dt = np.vstack([X_benign_dt, df_attack])
+    y_true_early = np.hstack([
+    np.zeros(len(X_benign_dt)),  # Benign holdout
     np.ones(len(df_attack))   # All attacks
     ])
-    #
+    # 
     y_true = target
-    
-    # Reuse same scaler
+    _,X_train_dt,_, y_dt = train_test_split(X_train_dt,y_true_early, test_size=0.25,random_state=42,stratify=y_true_early)
+    print(len(X_train_dt))
+
     print("Training Data amount:",len(X_train))
     X_test_full = log1p_static_scale(X_test_attacks)
+    X_test_full,_,y_true, _ = train_test_split(X_test_full,y_true, test_size=0.25,random_state=42,stratify=y_true)
 
+    # Dataloaders for training
     trainloader = DataLoader(TensorDataset(torch.FloatTensor(X_train)), batch_size=64, shuffle=True)
     validaton_loader = DataLoader(TensorDataset(torch.FloatTensor(X_Validation)), batch_size=64 ,shuffle=True)
     print("Full",len(y_true),"Benign",np.sum(y_true == 0),"Anomaly",np.sum(y_true == 1))
 
 
 
-    return trainloader, validaton_loader ,X_test_full, X_Validation, y_true,X_train_classifier,y_class
+    return trainloader, validaton_loader ,X_test_full, X_Validation, y_true,X_train_dt,y_dt
 
 
     
