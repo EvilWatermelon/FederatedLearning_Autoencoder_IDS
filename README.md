@@ -24,14 +24,14 @@ Now, launch your 'SuperNode'
 # Repeat for each embedded device (adjust SuperLink IP and partition-id)
 flower-supernode  --insecure      --superlink SuperLink IP:9092    --node-config "partition-id=0 num-partitions=4"
 ```
-Repeat for each embedded device that you want to connect to the `SuperLink`.
+Repeat for each embedded device that you want to connect to the `SuperLink`. Change partition-id if you want the Client to use different Data.
 
 If you want to use SuperLink and SuperNode on PC with multiple Terminals launch 'Supernode' with this
 ```bash
 # Repeat for each embedded device (adjust SuperLink IP, Clientappio Port and partition-id)
 flower-supernode  --insecure      --superlink SuperLink IP:9092  --clientappio-api-address 127.0.0.1:9097  --node-config "partition-id=0 num-partitions=4"
 ```
-Change the clientappio-api-address Port for each Client
+Change the clientappio-api-address Port for each Client. Change partition-id if you want the Client to use different Data.
 
 ### Run the Flower App
 
