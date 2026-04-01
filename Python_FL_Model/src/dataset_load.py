@@ -157,27 +157,27 @@ def load_cross_data(partition_id: int, num_partitions: int, which_dataset: int):
     # split training data into Training and validation set
     X_train_, X_val   = train_test_split(df_benign, test_size=0.2,random_state=42)
     # split splitted training data into Training and training set for Decision Tree
-    X_train_, X_benign_dt   = train_test_split(X_train_, test_size=0.2,random_state=42)
+    X_train_, X_benign_dt   = train_test_split(X_train_, test_size=0.2,random_state=42) #remove this for no dt
 
 
     # Scaling
     X_train = log1p_static_scale(X_train_)
     
     X_Validation = log1p_static_scale(X_val)
-    X_benign_dt = log1p_static_scale(X_benign_dt)
+    X_benign_dt = log1p_static_scale(X_benign_dt) #remove this for no dt
     sample_attack = int(len(X_benign_dt)*0.1)    
     df_attack = rng.choice(df_attack , size=sample_attack, axis=0, replace=False)
     df_attack = log1p_static_scale(df_attack)
     
     # training data for Decisiontree
-    X_train_dt = np.vstack([X_benign_dt, df_attack])
-    y_true_early = np.hstack([
+    X_train_dt = np.vstack([X_benign_dt, df_attack]) #remove this for no dt
+    y_true_early = np.hstack([ #remove this for no dt
     np.zeros(len(X_benign_dt)),  # Benign holdout
     np.ones(len(df_attack))   # All attacks
     ])
     #
     y_true = target
-    _,X_train_dt,_, y_dt = train_test_split(X_train_dt,y_true_early, test_size=0.25,random_state=42,stratify=y_true_early)
+    _,X_train_dt,_, y_dt = train_test_split(X_train_dt,y_true_early, test_size=0.25,random_state=42,stratify=y_true_early) #remove this for no dt
 
     print("Training Data amount:",len(X_train))
     X_test_full = log1p_static_scale(X_test_attacks)
@@ -187,7 +187,7 @@ def load_cross_data(partition_id: int, num_partitions: int, which_dataset: int):
     validaton_loader = DataLoader(TensorDataset(torch.FloatTensor(X_Validation)), batch_size=64 ,shuffle=True)
     print("Full",len(y_true),"Benign",np.sum(y_true == 0),"Anomaly",np.sum(y_true == 1))
   
-    return trainloader, validaton_loader ,X_test_full, X_Validation, y_true,X_train_dt,y_dt
+    return trainloader, validaton_loader ,X_test_full, X_Validation, y_true,X_train_dt,y_dt #remove this for no dt
 
 
 def load_mono_dataset(partition_id: int, num_partitions: int,which_dataset:int):
@@ -292,22 +292,22 @@ def load_mono_dataset(partition_id: int, num_partitions: int,which_dataset:int):
     sample_attack = int(len(X_test)*0.1)
     X_test_attacks = rng.choice(X_test_attacks , size=sample_attack, axis=0, replace=False)
     # testing set that will be split into testing set and dt train set
-    X_test_full = np.vstack([X_test, X_test_attacks])
-    y_true_early = np.hstack([
+    X_test_full = np.vstack([X_test, X_test_attacks]) #remove this for no dt
+    y_true_early = np.hstack([ #remove this for no dt
     np.zeros(len(X_test)),  
     np.ones(len(X_test_attacks))   
     ])
 
     X_test_full = log1p_static_scale(X_test_full)
     # split testing data into testing and dt training set
-    X_test_full,X_train_dt,y_true, y_dt = train_test_split(X_test_full,y_true_early, test_size=0.25,random_state=42,stratify=y_true_early)
+    X_test_full,X_train_dt,y_true, y_dt = train_test_split(X_test_full,y_true_early, test_size=0.25,random_state=42,stratify=y_true_early) #remove this for no dt
     print("Full",len(y_true),"Benign",np.sum(y_true == 0),"Anomaly",np.sum(y_true == 1))
     # Dataloaders for training
     trainloader = DataLoader(TensorDataset(torch.FloatTensor(X_train)), batch_size=64, shuffle=True)
     validaton_loader = DataLoader(TensorDataset(torch.FloatTensor(X_Validation)), batch_size=64 ,shuffle=True)
 
     print("Samples train",len(X_train),"val",len(X_Validation),"X_train_dt",len(X_train_dt),"attacksx",len(X_test_attacks))
-    return trainloader, validaton_loader ,X_test_full, X_Validation, y_true,X_train_dt,y_dt
+    return trainloader, validaton_loader ,X_test_full, X_Validation, y_true,X_train_dt,y_dt #remove this for no dt
 
 
 
@@ -330,7 +330,7 @@ def load_centralized_dataset(which_dataset):
         # load anomaly samples with random flow duration
         X_test_attacks = pd.read_csv(f"small_BoTIoT_dataset_allattacks_clean/split_29.csv")
         # calibration split for calibrating the tflite model for ESP32 Deployment
-        calibration_split = pd.concat([pd.read_csv(f"small_IoTID20_dataset_allattacks_clean/split_29.csv"),pd.read_csv(f"small_IoTID20_dataset_benign_clean_noleak/glo_split_8.csv")],ignore_index=True)
+        calibration_split = pd.concat([pd.read_csv(f"small_BoTIoT_dataset_allattacks_clean/split_15.csv"),pd.read_csv(f"small_BoTIoT_dataset_benign_clean_noleak/glo_split_8.csv")],ignore_index=True)
 
         print("load_data_BoTIoT 90/10")
     elif which_dataset ==1 :
@@ -408,22 +408,23 @@ def load_centralized_dataset(which_dataset):
     X_test_attacks = rng.choice(X_test_attacks , size=sample_attack, axis=0, replace=False)
     
     # testing set that will be split into testing set and dt train set
-    X_test_full = np.vstack([X_test, X_test_attacks])
-    y_true_early = np.hstack([
+    X_test_full = np.vstack([X_test, X_test_attacks]) 
+    y_true_early = np.hstack([ 
     np.zeros(len(X_test)),  # Benign holdout
     np.ones(len(X_test_attacks))   # All attacks
     ])
 
     X_test_full = log1p_static_scale(X_test_full)
     # split testing data into testing and dt training set
-    X_test_full,X_train_dt,y_true, y_dt = train_test_split(X_test_full,y_true_early, test_size=0.25,random_state=42,stratify=y_true_early)
+    X_test_full,X_train_dt,y_true, y_dt = train_test_split(X_test_full,y_true_early, test_size=0.25,random_state=42,stratify=y_true_early) #remove X_train_dt and y_dt for no dt
     # Dataloaders for training
     trainloader = DataLoader(TensorDataset(torch.FloatTensor(X_train)), batch_size=64, shuffle=True)
     validaton_loader = DataLoader(TensorDataset(torch.FloatTensor(X_Validation)), batch_size=64 ,shuffle=True)
-    print("Full",len(y_true),"Benign",np.sum(y_true == 0),"Anomaly",np.sum(y_true == 1))
+    print("Full",len(y_true),"Benign",np.sum(y_true == 0),"Anomaly",np.sum(y_true == 1)) 
 
-    lenge = len(X_test_full)
     #Exporting Datasets into .h files for MCU deployment
+    lenge = len(X_test_full) 
+
     y_mcu = y_true
     # --- Write the C Header File ---
     filename = f"mcu_test_data.h"
@@ -465,7 +466,7 @@ def load_centralized_dataset(which_dataset):
         f.write(f"const int MCU_NUM_FEATURES = {calibration_split.shape[1]};\n\n")
 
         # Write X data (Features)
-        f.write(f"const float mcu_test_x[{lenge}][{X_test_full.shape[1]}] = {{\n")
+        f.write(f"const float mcu_test_x[{lenge}][{calibration_split.shape[1]}] = {{\n")
         for i, row in enumerate(calibration_split):
             # Format numbers to 6 decimal places to save string space
             row_str = ", ".join([f"{val:.6f}" for val in row])
@@ -482,7 +483,7 @@ def load_centralized_dataset(which_dataset):
     
     print("Samples train",len(X_train),"val",len(X_Validation),"X_train_dt",len(X_train_dt),"attacksx",len(X_test_attacks))
 
-    return trainloader, validaton_loader ,X_test_full, X_Validation, y_true,X_train_dt,y_dt
+    return trainloader, validaton_loader ,X_test_full, X_Validation, y_true,X_train_dt,y_dt #remove this for no dt
 
 def load_crossdataset(which_dataset):
     
@@ -574,27 +575,27 @@ def load_crossdataset(which_dataset):
   
     # split training data into Training and validation set and benign data for DT training
     X_train_, X_val   = train_test_split(df_benign, test_size=0.2,random_state=42)
-    X_train_, X_benign_dt   = train_test_split(X_train_, test_size=0.2,random_state=42)
+    X_train_, X_benign_dt   = train_test_split(X_train_, test_size=0.2,random_state=42) #remove  X_benign_dt for no dt
 
 
     # Scaling
     X_train = log1p_static_scale(X_train_)
 
     X_Validation = log1p_static_scale(X_val)
-    X_benign_dt = log1p_static_scale(X_benign_dt)
+    X_benign_dt = log1p_static_scale(X_benign_dt) #remove this for no dt
     # i need to change this
     sample_attack = int(len(X_benign_dt)*0.1)    
     df_attack = rng.choice(df_attack , size=sample_attack, axis=0, replace=False)
     df_attack = log1p_static_scale(df_attack)
-    X_train_dt = np.vstack([X_benign_dt, df_attack])
-    y_true_early = np.hstack([
+    X_train_dt = np.vstack([X_benign_dt, df_attack]) #remove this for no dt
+    y_true_early = np.hstack([ #remove this for no dt
     np.zeros(len(X_benign_dt)),  # Benign holdout
     np.ones(len(df_attack))   # All attacks
     ])
     # 
     y_true = target
-    _,X_train_dt,_, y_dt = train_test_split(X_train_dt,y_true_early, test_size=0.25,random_state=42,stratify=y_true_early)
-    print(len(X_train_dt))
+    _,X_train_dt,_, y_dt = train_test_split(X_train_dt,y_true_early, test_size=0.25,random_state=42,stratify=y_true_early) #remove this for no dt
+    print(len(X_train_dt)) #remove this for no dt
 
     print("Training Data amount:",len(X_train))
     X_test_full = log1p_static_scale(X_test_attacks)
@@ -604,10 +605,42 @@ def load_crossdataset(which_dataset):
     trainloader = DataLoader(TensorDataset(torch.FloatTensor(X_train)), batch_size=64, shuffle=True)
     validaton_loader = DataLoader(TensorDataset(torch.FloatTensor(X_Validation)), batch_size=64 ,shuffle=True)
     print("Full",len(y_true),"Benign",np.sum(y_true == 0),"Anomaly",np.sum(y_true == 1))
+    
+    #Exporting Datasets into .h files for MCU deployment
+    lenge = len(X_test_full) 
+
+    y_mcu = y_true
+    # --- Write the C Header File ---
+    filename = f"mcu_test_data.h"
+    print(f"Exporting {lenge} samples to {filename}...")
+
+    with open(filename, "w") as f:
+        f.write("/* Auto-generated TinyML Test Dataset */\n")
+        f.write("#pragma once\n\n")
+        
+        f.write(f"const int MCU_TEST_SAMPLES = {lenge};\n")
+        f.write(f"const int MCU_NUM_FEATURES = {X_test_full.shape[1]};\n\n")
+
+        # Write X data (Features)
+        f.write(f"const float mcu_test_x[{lenge}][{X_test_full.shape[1]}] = {{\n")
+        for i, row in enumerate(X_test_full):
+            # Format numbers to 6 decimal places to save string space
+            row_str = ", ".join([f"{val:.6f}" for val in row])
+            f.write(f"    {{{row_str}}}")
+            if i < lenge - 1:
+                f.write(",\n")
+            else:
+                f.write("\n")
+        f.write("};\n\n")
+
+        # Write Y data (Labels)
+        f.write(f"const int mcu_test_y[{lenge}] = {{\n    ")
+        y_str = ", ".join([str(int(val)) for val in y_mcu])
+        f.write(y_str)
+        f.write("\n};\n")
 
 
-
-    return trainloader, validaton_loader ,X_test_full, X_Validation, y_true,X_train_dt,y_dt
+    return trainloader, validaton_loader ,X_test_full, X_Validation, y_true,X_train_dt,y_dt #remove this for no dt
 
 
     

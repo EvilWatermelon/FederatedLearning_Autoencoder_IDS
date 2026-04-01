@@ -101,38 +101,38 @@ def evaluate(msg: Message, context: Context):
     #_,_,X_test_full, X_test_validation, y_true,X_train_dt,y_dt = load_cross_data(partition, num_partitions,which_dataset=which_dataset)
      
     # Call the evaluation function
-    threshold, y_pred_percentile, tr_star, y_tr_star, errors_full, errors_val,y_pred,y_proba,_,_,_ = test_fn(
+    threshold, y_pred_percentile, errors_full, errors_val,y_pred,y_proba,_,_,_ = test_fn(
         model, # Autoencoder
         X_test_full, X_test_validation, # Data for Testing
         partition, # Partition ID
         device, 
-        X_train_dt,y_dt # Data for Decision Tree
+        X_train_dt,y_dt # Data for Decision Tree #remove this for no dt
     )
 
  
     # Metrics for Client Eval
     # Confusion matrix
     cmpercentile = confusion_matrix(y_true, y_pred_percentile)
-    cm_dt = confusion_matrix(y_true,y_pred)
+    cm_dt = confusion_matrix(y_true,y_pred) #remove this for no dt
  
   
     print(f"\nConfusion Matrix Classify and Device Number {partition}:")
-    print(cm_dt)
+    print(cm_dt) #remove this for no dt
     
     # Use Confusion Matrix to calculate fnr and fpr for Percentile and DT
     fprpercentile=cmpercentile[0][1]/ (cmpercentile[0][0]+cmpercentile[0][1])
     fnrpercentile=cmpercentile[1][0]/ (cmpercentile[1][1]+cmpercentile[1][0])
 
-    fprdt=cm_dt[0][1] / (cm_dt[0][0]+cm_dt[0][1])
-    fnrdt=cm_dt[1][0] / (cm_dt[1][1]+cm_dt[1][0])
+    fprdt=cm_dt[0][1] / (cm_dt[0][0]+cm_dt[0][1]) #remove this for no dt
+    fnrdt=cm_dt[1][0] / (cm_dt[1][1]+cm_dt[1][0]) #remove this for no dt
 
     #  ROC AUC for Percentile and DT
-    b = roc_auc_score(y_true, y_proba) 
+    b = roc_auc_score(y_true, y_proba) #remove this for no dt
     c = roc_auc_score(y_true,errors_full)
 
     print(f"Device {partition} ROC AUC DT",b, "ROC AUC Error", c)
     print(f"Device {partition} Fprpercentile",float("{:.2f}".format(fprpercentile)),"Fnrpercentile",float("{:.2f}".format(fnrpercentile)),"FPR DT",
-          float("{:.2f}".format(fprdt)),"FNR DT",float("{:.2f}".format(fnrdt)))
+          float("{:.2f}".format(fprdt)),"FNR DT",float("{:.2f}".format(fnrdt))) #remove this for no dt
 
 
 
@@ -142,14 +142,14 @@ def evaluate(msg: Message, context: Context):
     # Construct and return reply Message
     # Return the evaluation metrics
     metrics = {
-        "threshold": float(threshold),
-        "fprpercentile": float("{:.2f}".format(fprpercentile)),
-        "fnrpercentile": float("{:.2f}".format(fnrpercentile)),
-        "FPR DT": float("{:.2f}".format(fprdt)),
-        "FNR DT": float("{:.2f}".format(fnrdt)),
-        #"PR AUC": float("{:.2f}".format(a)),
-        "ROC AUC DT": float("{:.2f}".format(b)),
-        "ROC AUC Error": float("{:.2f}".format(c)),
+        #"threshold": float(threshold),
+        #"fprpercentile": float("{:.2f}".format(fprpercentile)),
+        #"fnrpercentile": float("{:.2f}".format(fnrpercentile)),
+        #"FPR DT": float("{:.2f}".format(fprdt)), #remove this for no dt
+       # "FNR DT": float("{:.2f}".format(fnrdt)), #remove this for no dt
+        #"PR AUC": float("{:.2f}".format(a)), 
+        #"ROC AUC DT": float("{:.2f}".format(b)), #remove this for no dt
+        #"ROC AUC Error": float("{:.2f}".format(c)),
        # "PR AUC Error": float("{:.2f}".format(d)),
        # "Precision":float(("{:.2f}".format(pr_precísion))),
         "avg_testing_time": float("{:.2f}".format(testing_time)),  # New metric

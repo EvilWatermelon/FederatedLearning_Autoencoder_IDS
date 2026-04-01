@@ -16,6 +16,7 @@ from sklearn.tree import DecisionTreeClassifier
 import psutil
 from src.dataset_load import load_centralized_dataset,load_crossdataset
 import os
+import time
 class Autoencoder(nn.Module):
     def __init__(self, input_dim,dropout_rate=0.4): 
         super(Autoencoder, self).__init__()
@@ -128,7 +129,7 @@ def train(net, trainloader, validaton_loader,partition_id, epochs, lr,mu ,device
     
 
 
-def test(net, X_test_full, X_Validation,partition_id, device,X_train_dt,y_dt):
+def test(net, X_test_full, X_Validation,partition_id, device,X_train_dt,y_dt): #remove this for no dt
     """Validate the model on the test set."""
     print_memory_usage()
     net.eval()
@@ -136,11 +137,11 @@ def test(net, X_test_full, X_Validation,partition_id, device,X_train_dt,y_dt):
     net.to(device)
     with torch.no_grad():
          
-        X_train_dt = torch.FloatTensor(X_train_dt).to(device)
+        X_train_dt = torch.FloatTensor(X_train_dt).to(device) #remove this for no dt
         X_test_full = torch.FloatTensor(X_test_full).to(device)
         
         #encoding layer for classifier 
-        X_train_encoded = net.encoder(X_train_dt).detach().numpy()
+        X_train_encoded = net.encoder(X_train_dt).detach().numpy() #remove this for no dt
         X_test_encoded = net.encoder(X_test_full).numpy()
         
         # Validation reconstruction errors
@@ -150,9 +151,9 @@ def test(net, X_test_full, X_Validation,partition_id, device,X_train_dt,y_dt):
 
         # reconstruction error for classifier
         recon_dt = net(X_train_dt)
-        errors_dt = torch.mean(torch.abs(X_train_dt - recon_dt), dim=1).cpu().numpy()
+        errors_dt = torch.mean(torch.abs(X_train_dt - recon_dt), dim=1).cpu().numpy() #remove this for no dt
 
-        dt_stats = np.std(X_train_dt.cpu().numpy(), axis=1)
+        dt_stats = np.std(X_train_dt.cpu().numpy(), axis=1) #remove this for no dt
         
         # reconstruction error of full Test set
         X_test_full_tensor = X_test_full
@@ -160,40 +161,39 @@ def test(net, X_test_full, X_Validation,partition_id, device,X_train_dt,y_dt):
         errors_full = torch.mean(torch.abs(X_test_full_tensor - recon_full), dim=1).cpu().numpy()
         stats_test = np.std(X_test_full_tensor.cpu().numpy(), axis=1)
         
-        mu_val = np.mean(errors_val)
-        sigma_val = np.std(errors_val) + 1e-8 
+        mu_val = np.mean(errors_val) #remove this for no dt
+        sigma_val = np.std(errors_val) + 1e-8  #remove this for no dt
     # For training (used in classifier). Z-score normalisation
-    errors_dt_norm = (errors_dt - mu_val) / sigma_val
+    errors_dt_norm = (errors_dt - mu_val) / sigma_val #remove this for no dt
 
     # For testing (used in classifier). Z-score normalisation
-    errors_full_norm = (errors_full - mu_val) / sigma_val 
+    errors_full_norm = (errors_full - mu_val) / sigma_val  #remove this for no dt
 
-    X_features = np.column_stack([
+    X_features = np.column_stack([ #remove this for no dt
     X_train_encoded,  # AE latent
     errors_dt_norm,  # Recon error
     dt_stats  # Flow stats
     ])  # 8D total with 67 architecture, new architecture 8d since bottleneck is 6
     
     # DecisionTree (DT), alternative to unsupervised Thresholding,small for Tinyml deployment
-    dt = DecisionTreeClassifier(max_depth=4,class_weight='balanced',random_state=42,min_samples_leaf=20)  # 16 leaves max
+    dt = DecisionTreeClassifier(max_depth=4,class_weight='balanced',random_state=42,min_samples_leaf=20)  # 16 leaves max  #remove this for no dt
     
-    X_features_test = np.column_stack([X_test_encoded, errors_full_norm, stats_test])
+    X_features_test = np.column_stack([X_test_encoded, errors_full_norm, stats_test]) #remove this for no dt
     # DT fit and predict
-    dt.fit(X_features, y_dt)  
-    y_pred = dt.predict(X_features_test)
-    y_proba = dt.predict_proba(X_features_test)[:, 1] 
+    dt.fit(X_features, y_dt)  #remove this for no dt
+    y_pred = dt.predict(X_features_test) #remove this for no dt
+    y_proba = dt.predict_proba(X_features_test)[:, 1]  #remove this for no dt
     # Unsupervised Thresholding, Percentile
     threshold_percentile = np.percentile(errors_val,80)
     print("Threshold percentile 85")
     y_pred_percentile = (errors_full > threshold_percentile).astype(int)
-    tr_star = np.mean(errors_val) + np.std(errors_val)
-    y_tr_star= (errors_full > tr_star).astype(int)
     print_memory_usage()
-    return threshold_percentile, y_pred_percentile ,tr_star, y_tr_star , errors_full, errors_val,y_pred,y_proba,dt,mu_val,sigma_val
+    return threshold_percentile, y_pred_percentile , errors_full, errors_val,y_pred,y_proba,dt,mu_val,sigma_val #remove this for no dt
 
 
 def global_evaluate(server_round: int, arrays: ArrayRecord) -> MetricRecord:
     """Evaluate model on central data."""
+    start_time = time.time()
 
     # Load the model and initialize it with the received weights
     model = Autoencoder(67)
@@ -206,79 +206,79 @@ def global_evaluate(server_round: int, arrays: ArrayRecord) -> MetricRecord:
     # Load data set
     # which_dataset 2 for BoTIoT; 3 for IoTID20 just like client
 
-    _,_,X_test_full, X_test_validation, y_true,X_train_dt,y_dt = load_centralized_dataset(which_dataset= 1)
+    _,_,X_test_full, X_test_validation, y_true,X_train_dt,y_dt = load_centralized_dataset(which_dataset= 1) #remove this for no dt
     # which_dataset 0 for Training BoTIoT -> Testing IoTID20; everything else for Training IoTID20 -> Testing BoTIoT just like client
-    #_,_,X_test_full, X_test_validation, y_true,X_train_dt,y_dt = load_crossdataset(which_dataset = 1) 
+    #_,_,X_test_full, X_test_validation, y_true,X_train_dt,y_dt = load_crossdataset(which_dataset = 1)  #remove this for no dt
 
     # Evaluate the global model on the test set
-    threshold, y_pred_percentile, tr_star, y_tr_star, errors_full, errors_val,y_pred,y_proba,dt,mu,sigma = test(
+    threshold, y_pred_percentile, errors_full, errors_val,y_pred,y_proba,dt,mu,sigma = test( #remove this for no dt
         model,
         X_test_full, X_test_validation, 1000,
-        device, X_train_dt,y_dt
+        device, X_train_dt,y_dt #remove this for no dt
     )
 
     # Metrics
     # Confusion matrix
     cmpercentile = confusion_matrix(y_true, y_pred_percentile)
-    cm_dt = confusion_matrix(y_true,y_pred)
+    cm_dt = confusion_matrix(y_true,y_pred) #remove this for no dt
     #print(f"\nConfusion Matrix percentile Percentile:")
     #print(cmpercentile)
     #print(f"\nConfusion Matrix Proba:")
     #print(cm_proba)
   
     print(f"\nConfusion Matrix Classify:")
-    print(cm_dt)
-    tn_dt, fp_dt, fn_dt, tp_dt = confusion_matrix(y_true, y_pred).ravel()
+    print(cm_dt) #remove this for no dt
+    tn_dt, fp_dt, fn_dt, tp_dt = confusion_matrix(y_true, y_pred).ravel() #remove this for no dt
     tn_percentile, fp_percentile, fn_percentile, tp_percentile = confusion_matrix(y_true, y_pred_percentile).ravel()
-    # Use Confusion Matrix to calculate fnr and fpr for Percentile and DT
-    fprpercentile=cmpercentile[0][1]/ (cmpercentile[0][0]+cmpercentile[0][1])
-    fnrpercentile=cmpercentile[1][0]/ (cmpercentile[1][1]+cmpercentile[1][0])
+    # Use Confusion Matrix to calculate fnr and fpr for Percentile and DT 
+    fprpercentile=cmpercentile[0][1]/ (cmpercentile[0][0]+cmpercentile[0][1]) 
+    fnrpercentile=cmpercentile[1][0]/ (cmpercentile[1][1]+cmpercentile[1][0]) 
     
-    fprdt=cm_dt[0][1] / (cm_dt[0][0]+cm_dt[0][1])
-    fnrdt=cm_dt[1][0] / (cm_dt[1][1]+cm_dt[1][0])
+    fprdt=cm_dt[0][1] / (cm_dt[0][0]+cm_dt[0][1]) #remove this for no dt
+    fnrdt=cm_dt[1][0] / (cm_dt[1][1]+cm_dt[1][0]) #remove this for no dt
     
     # calculate intrusion detection capability
-    idc_dt = intrusion_detection_capability(y_true, y_pred)
+    idc_dt = intrusion_detection_capability(y_true, y_pred) #remove this for no dt
     idc_percentile = intrusion_detection_capability(y_true, y_pred_percentile)
 
     print("Intrusion Detection Capability:", "DT",idc_dt,"percentile",idc_percentile)
     
-    # PR AUC and ROC AUC for Percentile and DT
-    a = average_precision_score(y_true, y_proba) #pr auc; do i need to invert it? finde nicht wirklich aussage kräftig. Sehr hohe werte für Imbalance
-    b = roc_auc_score(y_true, y_proba) #ROC AUC is suboptimal; do i need to invert it? seems not dunno.
+    # AP and ROC AUC for Percentile and DT
+    a = average_precision_score(y_true, y_proba) #AP; #remove this for no dt
+    b = roc_auc_score(y_true, y_proba) #ROC AUC  #remove this for no dt
     c = roc_auc_score(y_true,errors_full)
     d = average_precision_score(y_true,errors_full)
-    #print("Testing if it is right ",y_pred[0],y_true[0],y_proba)
+    #print("Testing if it is right ",y_pred[0],y_true[0],y_proba) #remove this for no dt
     # Clasification Report
-    #crpercentile = classification_report(y_true,y_pred_percentile)
-    crc = classification_report(y_true,y_pred)
+    #crpercentile = classification_report(y_true,y_pred_percentile) #remove this for no dt
+    crc = classification_report(y_true,y_pred) #remove this for no dt
     
-    print(crc)
-    print(f"ROC AUC DT",b, "ROC AUC Error", c)
+    print(crc) #remove this for no dt
+    print(f"ROC AUC DT",b, "ROC AUC Error", c) #remove this for no dt
     print(f"Fprpercentile",float("{:.2f}".format(fprpercentile)),"Fnrpercentile",float("{:.2f}".format(fnrpercentile)),"FPR DT",float("{:.2f}".format(fprdt)),"FNR DT",
-          float("{:.2f}".format(fnrdt)))
+          float("{:.2f}".format(fnrdt))) #remove this for no dt
     
     # calculate Matthews Corrcoef
-    mcc_dt = matthews_corrcoef(y_true,y_pred)
-    mcc_percentile = matthews_corrcoef(y_true,y_pred_percentile)
+    mcc_dt = matthews_corrcoef(y_true,y_pred) #remove this for no dt
+    mcc_percentile = matthews_corrcoef(y_true,y_pred_percentile) 
     
     # calculate F1-Score
-    f1_dt = f1_score(y_true, y_pred)
+    f1_dt = f1_score(y_true, y_pred) #remove this for no dt
     f1_percentile = f1_score(y_true, y_pred_percentile)
     
     # calculate False Discovery Rate
-    fdr_dt = fp_dt / (fp_dt + tp_dt) if (fp_dt + tp_dt) > 0 else 0
+    fdr_dt = fp_dt / (fp_dt + tp_dt) if (fp_dt + tp_dt) > 0 else 0 #remove this for no dt
     fdr_percentile = fp_percentile / (fp_percentile + tp_percentile) if (fp_percentile + tp_percentile) > 0 else 0
-    print(f"F1-Score DT: {f1_dt:.4f}",f"F1-Score percentile: {f1_percentile:.4f}")
+    print(f"F1-Score DT: {f1_dt:.4f}",f"F1-Score percentile: {f1_percentile:.4f}") #remove this for no dt
     print(f"False Discovery Rate DT: {fdr_dt:.4f}", f"False Discovery Rate percentile: {fdr_percentile:.4f}")
     print("MCC DT", mcc_dt, "MCC percentile", mcc_percentile)
     
-    # export DecisionTree for inference on ESP32
-    def export_tree_to_c(tree, feature_names, filename="tree_model.h"):
+    # export DecisionTree for inference on ESP32 
+    def export_tree_to_c(tree, feature_names, filename="tree_model.h"): #remove this for no dt
           tree_ = tree.tree_
 
           with open(filename, "w") as f:
-              f.write("int predict(float features[]) {\n")
+              f.write("int predict_dt(float features[]) {\n")
 
               def recurse(node, depth):
                   indent = "    " * depth
@@ -309,29 +309,29 @@ def global_evaluate(server_round: int, arrays: ArrayRecord) -> MetricRecord:
 
 
 
-
+    end_time = time.time()
+    testing_time = end_time - start_time
     # Construct and return reply Message
     # Return the evaluation metrics
     return MetricRecord({
         "threshold": float(threshold),
-      #  "threshold tr_star": float(tr_star),#"classification-report": classreport,
         "FPR AE": float("{:.2f}".format(fprpercentile)),
         "FNR AE": float("{:.2f}".format(fnrpercentile)),
-        "MCC DT": float("{:.2f}".format(mcc_dt)),
+        "MCC DT": float("{:.2f}".format(mcc_dt)), #remove this for no dt
         "MCC AE": float("{:.2f}".format(mcc_percentile)),
-        "FPR DT": float("{:.2f}".format(fprdt)),
-        "FNR DT": float("{:.2f}".format(fnrdt)),
-        "ROC AUC DT": float("{:.2f}".format(b)),
+        "FPR DT": float("{:.2f}".format(fprdt)), #remove this for no dt
+        "FNR DT": float("{:.2f}".format(fnrdt)), #remove this for no dt
+        "ROC AUC DT": float("{:.2f}".format(b)), #remove this for no dt
         "ROC AUC AE": float("{:.2f}".format(c)),
-        "PR AUC DT": float("{:.2f}".format(a)),
-        "PR AUC AE": float("{:.2f}".format(d)),
-        "IDC DT": float("{:.2f}".format(idc_dt)),
+        "AP DT": float("{:.2f}".format(a)), #remove this for no dt
+        "AP AE": float("{:.2f}".format(d)),
+        "IDC DT": float("{:.2f}".format(idc_dt)), #remove this for no dt
         "IDC AE": float("{:.2f}".format(idc_percentile)),
-        "F1-Score DT": float("{:.4f}".format(f1_dt)),
+        "F1-Score DT": float("{:.4f}".format(f1_dt)), #remove this for no dt
         "F1-Score AE": float("{:.4f}".format(f1_percentile)),
-        "FDR DT": float("{:.4f}".format(fdr_dt)),
+        "FDR DT": float("{:.4f}".format(fdr_dt)), #remove this for no dt
         "FDR AE": float("{:.4f}".format(fdr_percentile)),                
-        "Confusion Matrix DT": cm_dt.flatten().tolist(),
+        "Confusion Matrix DT": cm_dt.flatten().tolist(), #remove this for no dt
         "Confusion Matrix AE": cmpercentile.flatten().tolist(),
     })
     
